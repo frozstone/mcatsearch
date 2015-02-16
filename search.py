@@ -1,5 +1,4 @@
 import query_mathtext as qmt
-import query_math as qm
 from lxml import etree, objectify
 from os import path
 from pickle import dump
@@ -38,52 +37,21 @@ def askSolr_mathtext((num, query)):
     print num
     docs_all = {}
     docs_rerank = {}
-    docs_all_singleton = {}
-    docs_rerank_singleton = {}
     q = qmt.Query(solrurlmath, solrurlpara, nrows)
     for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
         try:
             docs_all[me] = q.askSolr_all(query, me, 0.5)
             docs_rerank[me] = q.askSolr_rerank(query, me, 0.5, 0.5)
-            docs_all_singleton[me] = q.askSolr_all_singleton(query, me)
-            docs_rerank_singleton[me] = q.askSolr_rerank_singleton(query, me, 0.5, 0.5)
-        except:
-            print num + me + ' error'
-    print num + ' finish'
-    return num, docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton
-
-def askSolrParallel_mathtext(qdic, cores):
-    pool = Pool(processes=cores)
-    scenario_all = {}
-    scenario_rerank = {}
-    scenario_all_singleton = {}
-    scenario_rerank_singleton = {}
-    for num, docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton in pool.map(askSolr_mathtext, qdic.items()):
-        scenario_all[num] = docs_all
-        scenario_rerank[num] = docs_rerank
-        scenario_all_singleton[num] = docs_all_singleton
-        scenario_rerank_singleton[num] = docs_rerank_singleton
-    return scenario_all, scenario_rerank, scenario_all_singleton, scenario_rerank_singleton
-
-def askSolr_math((num, query)):
-    print num
-    docs_all = {}
-    docs_rerank = {}
-    q = qm.Query(solrurlmath, solrurlpara, nrows)
-    for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
-        try:
-            docs_all[me] = q.askSolr_all(query, me)
-            docs_rerank[me] = q.askSolr_rerank(query, me, 0.5)
         except:
             print num + me + ' error'
     print num + ' finish'
     return num, docs_all, docs_rerank
 
-def askSolrParallel_math(qdic, cores):
+def askSolrParallel_mathtext(qdic, cores):
     pool = Pool(processes=cores)
     scenario_all = {}
     scenario_rerank = {}
-    for num, docs_all, docs_rerank in pool.map(askSolr_math, qdic.items()):
+    for num, docs_all, docs_rerank in pool.map(askSolr_mathtext, qdic.items()):
         scenario_all[num] = docs_all
         scenario_rerank[num] = docs_rerank
     return scenario_all, scenario_rerank
@@ -93,25 +61,12 @@ if __name__ == '__main__':
     judgefl = ''
     qdic = openQueryFile(queryfl)
 #    askSolr_mathtext(('NTCIR11-Math-12', qdic['NTCIR11-Math-12']))
-    docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton = askSolrParallel_mathtext(qdic, 25)
+    docs_all, docs_rerank = askSolrParallel_mathtext(qdic, 25)
     f = open('math_text_dump_docs_all.dat', 'wb')
     dump(docs_all, f, -1)
     f.close()
     f = open('math_text_dump_docs_rerank.dat', 'wb')
     dump(docs_rerank, f, -1)
     f.close()
-    f = open('math_text_dump_docs_all_singleton.dat', 'wb')
-    dump(docs_all_singleton, f, -1)
-    f.close()
-    f = open('math_text_dump_docs_rerank_singleton.dat', 'wb')
-    dump(docs_rerank_singleton, f, -1)
-    f.close()
   
-    docs_all, docs_rerank = askSolrParallel_math(qdic, 25)
-    f = open('math_dump_docs_all.dat', 'wb')
-    dump(docs_all, f, -1)
-    f.close()
-    f = open('math_dump_docs_rerank.dat', 'wb')
-    dump(docs_rerank, f, -1)
-    f.close()
  
