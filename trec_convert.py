@@ -1,7 +1,7 @@
 from pickle import load
 from os import listdir, path
 
-dump_location = 'dump_scenario3'
+dump_location = 'dump'
 trec_location = 'result_submit'
 
 def open_scenario_dict(flpath):
