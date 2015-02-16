@@ -35,6 +35,6 @@ class Query_All:
 
     def ask_solr_doc(self, query, op='max'):
         maths, documents = self.__ask_solr_math(query, op)
-        maths = sorted(maths.iteritems(), key=operator.itemgetter(1))
-        documents = sorted(documents.iteritems(), key=operator.itemgetter(1))[:self.n_row]
+        maths = sorted(maths.iteritems(), key=operator.itemgetter(1), reverse = True)
+        documents = sorted(documents.iteritems(), key=operator.itemgetter(1), reverse=True)[:self.n_row]
         return maths, documents
