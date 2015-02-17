@@ -214,7 +214,7 @@ class Query:
         all_docs = OrderedDict()
         for gmid, score in sorted(all_maths.iteritems(), key=operator.itemgetter(1), reverse=True):
             gpid = gmid[:gmid.index('#')]
-            all_docs[gpid] = None
+            all_docs[gpid] = score
             if len(all_docs) >= self.n_row: break
         return all_docs.keys()
 

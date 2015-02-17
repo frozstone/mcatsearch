@@ -50,8 +50,11 @@ class Query_Rerank:
         respmax = self.solr_conn_math.query(q = query, fields = ('gmid', 'score'))
         resp = self.solr_conn_math.query(q = query, fields = ('gmid', 'score'), fq = 'gpid:(%s)' % gpid)
         math_score = {}
-        for mt in resp.results:
-            math_score[mt['gmid']] = mt['score']
+        while True:
+            for mt in resp.results:
+                math_score[mt['gmid']] = mt['score']
+            rep = resp.next_batch()
+            if not resp: break
         return math_score, respmax.maxScore
 
     def ask_solr_doc_score(self, query, gpid):
