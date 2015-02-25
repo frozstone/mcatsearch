@@ -53,7 +53,7 @@ class Query_Rerank:
         while True:
             for mt in resp.results:
                 math_score[mt['gmid']] = mt['score']
-            rep = resp.next_batch()
+            resp = resp.next_batch()
             if not resp: break
         return math_score, respmax.maxScore
 

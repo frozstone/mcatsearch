@@ -23,7 +23,8 @@ class Query:
         self.n_row = nrow
 
     def __escape(self, string):
-        return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
+        return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token])
+        #return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
 
     def __getUnicodeText(self, string):
         if type(string) is str:
@@ -90,11 +91,12 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-        context_en_query = 'context_en:(%s)' % terms_word
-        description_en_query = 'description_en:(%s)' % terms_word
+#        context_en_query = 'context_en:(%s)' % terms_word
+#        description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
-        description_ch_query = 'description_children:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
+#        description_ch_query = 'description_children:(%s)' % terms_word
+#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
+        return ' '.join([context_ch_query])
 
     def __constructSolrQuery_para_words(self, query_element):
         #construct keyword query
@@ -102,12 +104,13 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-        context_en_query = 'context_en:(%s)' % terms_word
-        description_en_query = 'description_en:(%s)' % terms_word
+#        context_en_query = 'context_en:(%s)' % terms_word
+#        description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
-        description_ch_query = 'description_children:(%s)' % terms_word
-        body = 'body:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
+#        description_ch_query = 'description_children:(%s)' % terms_word
+#        body = 'body:(%s)' % terms_word
+#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
+        return ' '.join([context_ch_query])
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
