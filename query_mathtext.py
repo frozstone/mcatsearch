@@ -23,7 +23,7 @@ class Query:
         self.n_row = nrow
 
     def __escape(self, string):
-        return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
+        return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token])
 
     def __getUnicodeText(self, string):
         if type(string) is str:
@@ -111,17 +111,23 @@ class Query:
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
+        print opath
         opath_query = "opaths:('%s')" % self.__escape(' '.join(opath))
         upath_query = "upaths:('%s')" % self.__escape(' '.join(upath))
         sister_query = ' '.join(map(lambda family: "sisters:('%s')" % self.__escape(' '.join(family)), sister))
+        print opath_query.encode('utf-8')
         return opath_query, upath_query, sister_query
 
     def __constructSolrQuery_math_path_cont(self, qmath):
         ooper, oarg, uoper, uarg = self.__encodeMaths_path_cont(qmath)
+        print ooper
+        print oarg
         ooper_query = "ooper:('%s')" % self.__escape(' '.join(ooper))
         oarg_query = "oarg:('%s')" % self.__escape(' '.join(oarg))
         uoper_query = "uoper:('%s')" % self.__escape(' '.join(uoper))
         uarg_query = "uarg:('%s')" % self.__escape(' '.join(uarg)) 
+        print ooper_query.encode('utf-8')
+        print oarg_query.encode('utf-8')
         return ooper_query, oarg_query, uoper_query, uarg_query
 
     def __constructSolrQuery_math_hash_pres(self, qmath):

@@ -1,7 +1,7 @@
 from pickle import load
 from os import listdir, path
 
-dump_location = 'dump'
+dump_location = 'dump_ctxdb'
 trec_location = 'result_submit'
 judge_location = 'result_judge/NTCIR11_Math-qrels.dat'
 
@@ -29,7 +29,7 @@ def write_lines_to_files(lines, flpath):
     f.writelines(lines)
     f.close()
 
-def trec_format(results, scenario_name, math_encode, judged_para):
+def trec_format(results, scenario_name, math_encode, experiment, judged_para):
     '''
         results: dictionary of query and retreived paragraphs
     '''
@@ -39,18 +39,18 @@ def trec_format(results, scenario_name, math_encode, judged_para):
             if encode != math_encode: continue
             rank = 0
             for paragraph in paragraphs:
-                print paragraph
                 paragraph_basename = paragraph[paragraph.rindex('/') + 1:]
                 paragraph_basename = paragraph_basename.replace('.xhtml', '')
                 if paragraph_basename not in judged_para[query]: continue
-                lines.append('\t'.join([query, '1', paragraph_basename, str(rank + 1), str(1./(rank+1)), '%s_%s' % (scenario_name, math_encode)]) + '\n')
+                lines.append('\t'.join([query, '1', paragraph_basename, str(rank + 1), str(1./(rank+1)), '%s_%s_%s' % ( math_encode, experiment.replace('dump_', ''), scenario_name)]) + '\n')
                 rank += 1
     return lines
 
 if __name__ == '__main__':
     judged_para = open_judge_file(judge_location)
-    for scenario_fl in listdir(dump_location):
-        scenario = open_scenario_dict(path.join(dump_location, scenario_fl))
-        for math_encode in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
-            lines = trec_format(scenario, scenario_fl, math_encode, judged_para)
-            write_lines_to_files(lines, path.join(trec_location, '%s_%s' % (math_encode, scenario_fl)))
+    for experiment in listdir(dump_location):
+        for scenario_fl in listdir(path.join(dump_location, experiment)):
+            scenario = open_scenario_dict(path.join(dump_location, experiment, scenario_fl))
+            for math_encode in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
+                lines = trec_format(scenario, scenario_fl, math_encode, experiment, judged_para)
+                write_lines_to_files(lines, path.join(trec_location, '%s_%s_%s' % (math_encode, experiment.replace('dump_', ''), scenario_fl)))

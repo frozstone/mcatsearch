@@ -11,6 +11,7 @@ for f in `cd $SRC_DIR; ls *.dat`
 do
   name=`echo $f | sed s/\.dat//`
   echo $name
+#  $TREC_EVAL $OPTS -m all_trec  $REL_INFO_FILE $SRC_DIR$name.dat > $DST_DIR$name.dat
   $TREC_EVAL $OPTS -m qrels_jg -R qrels_jg $REL_INFO_FILE $SRC_DIR$name.dat > $DST_DIR$name.dat
 done
 
