@@ -90,11 +90,12 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-        context_en_query = 'context_en:(%s)' % terms_word
-        description_en_query = 'description_en:(%s)' % terms_word
+#        context_en_query = 'context_en:(%s)' % terms_word
+#        description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
-        description_ch_query = 'description_children:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
+#        description_ch_query = 'description_children:(%s)' % terms_word
+#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
+        return ' '.join([context_ch_query])
 
     def __constructSolrQuery_para_words(self, query_element):
         #construct keyword query
@@ -102,12 +103,13 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-        context_en_query = 'context_en:(%s)' % terms_word
-        description_en_query = 'description_en:(%s)' % terms_word
+#        context_en_query = 'context_en:(%s)' % terms_word
+#        description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
-        description_ch_query = 'description_children:(%s)' % terms_word
-        body = 'body:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
+#        description_ch_query = 'description_children:(%s)' % terms_word
+#        body = 'body:(%s)' % terms_word
+#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
+        return ' '.join([context_ch_query])
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
