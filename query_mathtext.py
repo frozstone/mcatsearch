@@ -15,14 +15,18 @@ class Query:
     solr_url_math = ''
     solr_url_para = ''
     n_row = 0
+    use_ctx = None
+    use_desc = None
 
-    def __init__(self, solrurlmath, solrurlpara, nrow):
+    def __init__(self, solrurlmath, solrurlpara, nrow, usectx, usedesc):
         self.solr_url_math = solrurlmath
         self.solr_url_para = solrurlpara
         self.n_row = nrow
+        self.use_ctx = usectx
+        self.use_desc = usedesc
 
     def __escape(self, string):
-        return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
+        return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token]) 
 
     def __getUnicodeText(self, string):
         if type(string) is str:
@@ -84,6 +88,9 @@ class Query:
         return csubhash, csighash, cmodhash
 
     def __constructSolrQuery_words(self, query_element):
+        '''
+            usectx: None (empty), False (no dep), True (dep)
+        '''
         #construct keyword query
         terms_word = []
         for qkeyword in query_element['keyword']:
@@ -93,7 +100,14 @@ class Query:
         description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
         description_ch_query = 'description_children:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
+        querytext = []
+        if self.use_ctx is not None:
+            if self.use_ctx: querytext.append(context_ch_query)
+            else: querytext.append(context_en_query)
+        if self.use_desc in not None:
+            if self.use_desc: querytext.append(description_ch_query)
+            else: querytext.append(description_en_query)
+        return ' '.join(querytext)
 
     def __constructSolrQuery_para_words(self, query_element):
         #construct keyword query
@@ -105,8 +119,15 @@ class Query:
         description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
         description_ch_query = 'description_children:(%s)' % terms_word
-        body = 'body:(%s)' % terms_word
-        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
+        #body = 'body:(%s)' % terms_word
+        querytext = []
+        if self.use_ctx is not None:
+            if self.use_ctx: querytext.append(context_ch_query)
+            else: querytext.append(context_en_query)
+        if self.use_desc in not None:
+            if self.use_desc: querytext.append(description_ch_query)
+            else: querytext.append(description_en_query)
+        return ' '.join(querytext)
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
@@ -190,7 +211,7 @@ class Query:
         qsingle = '%s %s' % (qtext, qmath)
         q_maths, q_docs = qall.ask_solr_doc(qsingle, candidates)
         q_docs = OrderedDict(q_docs)
-        return q_docs.keys()
+        return q_docs
 
     def askSolr_all(self, query, candidates, mathencode, alpha):
         '''
@@ -213,7 +234,7 @@ class Query:
         for gmid, score in sorted(all_maths.iteritems(), key=operator.itemgetter(1), reverse=True):
             gpid = gmid[:gmid.index('#')]
             all_docs[gpid] = score
-        return all_docs.keys()
+        return all_docs
 
     def askSolr_rerank_singleton(self, query, candidates, mathencode, alpha, beta, op='max'):
         qrerank = Query_Rerank(self.solr_url_para, self.solr_url_math, self.n_row)

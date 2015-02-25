@@ -4,12 +4,15 @@ from lxml import etree, objectify
 from os import path
 from pickle import dump, load
 from multiprocessing import Pool
+from sys import argv
 
 solrurlmath = 'http://localhost:9000/solr/mcd.20150129'
-solrurlpara = 'http://localhost:9000/solr/mcd.20150203.p'
+solrurlpara = 'http://localhost:9000/solr/mcd.20150220.p'
 nrows = 50
 
 jdic = {}
+usectx = None
+usedesc = None
 
 def getCleanTopics(qfl):
     parser = etree.XMLParser(remove_blank_text=True)
@@ -59,7 +62,7 @@ def askSolr_mathtext((num, query)):
     docs_rerank = {}
     docs_all_singleton = {}
     docs_rerank_singleton = {}
-    q = qmt.Query(solrurlmath, solrurlpara, nrows)
+    q = qmt.Query(solrurlmath, solrurlpara, nrows, usectx, usedesc)
     for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
 #        try:
             docs_all[me] = q.askSolr_all(query, jdic[num], me, 0.5)
@@ -84,24 +87,41 @@ def askSolrParallel_mathtext(qdic, cores):
         scenario_rerank_singleton[num] = docs_rerank_singleton
     return scenario_all, scenario_rerank, scenario_all_singleton, scenario_rerank_singleton
 
+def parseTextType(texttype):
+    usectx = None
+    usedesc = None
+    if 'ctx' in texttype:
+        if 'ctxdep' in texttype: usectx = True
+        else: usectx = False
+    if 'desc' in texttype:
+        if 'descdep' in texttype: usedesc = True
+        else: usedesc = False
+    return usectx, usedesc
+
 if __name__ == '__main__':
     queryfl = 'NTCIR11-Math2-queries-participants.xml'
     judgefl = 'NTCIR11_Math-qrels.dat'
     xhtmldict = 'xhtmldict'
+    dumpdir = argv[1]
+    texttype = argv[2] #choices: ctxnodep, ctx, descnodep, descdep
+
     qdic = openQueryFile(queryfl)
     jdic = openJudgmentFile(judgefl, xhtmldict)
-    askSolr_mathtext(('NTCIR11-Math-12', qdic['NTCIR11-Math-12']))
+
+    usectx, usedesc = parseTextType(texttype)
+#    askSolr_mathtext(('NTCIR11-Math-12', qdic['NTCIR11-Math-12']))
+
     docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton = askSolrParallel_mathtext(qdic, 25)
-    f = open('math_text_dump_docs_all.dat', 'wb')
+    f = open(path.join('math_text_dump_docs_all.dat'), 'wb')
     dump(docs_all, f, -1)
     f.close()
-    f = open('math_text_dump_docs_rerank.dat', 'wb')
+    f = open(path.join('math_text_dump_docs_rerank.dat'), 'wb')
     dump(docs_rerank, f, -1)
     f.close()
-    f = open('math_text_dump_docs_all_singleton.dat', 'wb')
+    f = open(path.join('math_text_dump_docs_all_singleton.dat'), 'wb')
     dump(docs_all_singleton, f, -1)
     f.close()
-    f = open('math_text_dump_docs_rerank_singleton.dat', 'wb')
+    f = open(path.join('math_text_dump_docs_rerank_singleton.dat'), 'wb')
     dump(docs_rerank_singleton, f, -1)
     f.close()
   

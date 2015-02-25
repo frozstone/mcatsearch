@@ -23,7 +23,7 @@ class Query:
         self.n_row = nrow
 
     def __escape(self, string):
-        return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
+        return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token])
 
     def __getUnicodeText(self, string):
         if type(string) is str:
@@ -175,9 +175,9 @@ class Query:
         all_docs = OrderedDict()
         for gmid, score in sorted(all_maths.iteritems(), key=operator.itemgetter(1), reverse=True):
             gpid = gmid[:gmid.index('#')]
-            all_docs[gpid] = None
+            all_docs[gpid] = score
             if len(all_docs) >= self.n_row: break
-        return all_docs.keys()
+        return all_docs
 
     def askSolr_rerank(self, query, mathencode, beta, op='max'):
         qrerank = Query_Rerank(self.solr_url_para, self.solr_url_math, self.n_row)
@@ -197,4 +197,4 @@ class Query:
             elif op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(all_maths)
             elif op == 'mean': qmath_score = self.__summarize_score_mean(all_maths)
             all_docs[gpid] = beta * qdoc_score + (1-beta) * qmath_score
-        return OrderedDict(sorted(all_docs.iteritems(), key = operator.itemgetter(1), reverse=True)).keys()
+        return OrderedDict(sorted(all_docs.iteritems(), key = operator.itemgetter(1), reverse=True))
