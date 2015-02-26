@@ -1,7 +1,7 @@
 from pickle import load
 from os import listdir, path
 
-dump_location = 'dump_ctxdb'
+dump_location = 'dump_scenario3_sum'
 trec_location = 'result_submit'
 judge_location = 'result_judge/NTCIR11_Math-qrels.dat'
 
