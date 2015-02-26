@@ -14,38 +14,6 @@ class Query_Rerank:
         self.solr_conn_math = solr.SolrConnection(solrmathurl)
         self.n_row = nrow
 
-    def __ask_solr_math_geometric_mean(self, response, gpid):
-        summation = 1.0
-        length = 0.0
-        while True:
-            summation *= functools.reduce(operator.mul, [math['score'] for math in response])
-            length += len(response)
-            response = response.next_batch()
-            if not response: break
-        return summation ** (1./length)
-
-    def __ask_solr_math_mean(self, response, gpid):
-        summation = 0.0
-        length = 0.0
-        while True:
-            summation += sum([math['score'] for math in response])
-            length += len(response)
-            response = response.next_batch()
-            if not response: break
-        return summation/length
-
-    def __ask_solr_math_max(self, response):
-        return response.maxScore
-
-    def __ask_solr_math(self, gpid, op):
-        resp = self.solr_conn_math.query(q = '*:*', fields = ('score'), fq = 'gpid:(%s)' % gpid)
-        if op == 'geomMean': 
-            return self.__ask_solr_math_geometric_mean(resp, gpid)
-        elif op == 'mean': 
-            return self.__ask_solr_math_mean(resp, gpid)
-        else: 
-            return self.__ask_solr_math_max(resp)
-
     def ask_solr_math_score(self, query, gpid):
         respmax = self.solr_conn_math.query(q = query, fields = ('gmid', 'score'))
         math_score = {}
@@ -65,7 +33,7 @@ class Query_Rerank:
         resp = self.solr_conn_doc.query(q = query, fields = ('gpid', 'score'))
         return resp.maxScore
 
-    def ask_solr_doc(self, query, candidates, op='max'):
+    def ask_solr_doc(self, query, candidates):
         documents = OrderedDict() #{gpid:math_scores}
         for gpid in candidates:
             documents[gpid] = self.ask_solr_doc_score(query, gpid)

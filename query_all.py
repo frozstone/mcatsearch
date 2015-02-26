@@ -22,6 +22,19 @@ class Query_All:
             if not response: break
         return maths_score, document_score
 
+    def __ask_solr_math_sum(self, response):
+        maths_score = {}
+        document_score = 0
+        while True:
+            for doc in response.results:
+                gmid = doc['gmid']
+                gpid = doc['gpid']
+                maths_score[gmid] = doc['score']
+                document_score += doc['score']
+            response = response.next_batch()
+            if not response: break
+        return maths_score, document_score
+    
     def __ask_solr_math(self, query, candidates, op):
         maths = {}
         documents = {}
@@ -29,6 +42,10 @@ class Query_All:
             resp = self.solr_connection.query(q = query, fields = ('gmid, gpid, score'), fq = 'gpid:(%s)' % gpid)
             if op == 'max':
                 maths_score, document_score = self.__ask_solr_math_max(resp)
+                documents[gpid] = document_score
+                maths.update(maths_score)
+            elif op == 'sum':
+                maths_score, document_score = self.__ask_solr_math_sum(resp)
                 documents[gpid] = document_score
                 maths.update(maths_score)
         return maths, documents
@@ -41,7 +58,7 @@ class Query_All:
         resp = self.solr_connection.query(q = query, fields = ('score'))
         return resp.maxScore
 
-    def ask_solr_doc(self, query, candidates, op='max'):
+    def ask_solr_doc(self, query, candidates, op):
         maths, documents = self.__ask_solr_math(query, candidates, op)
         documents = sorted(documents.iteritems(), key=operator.itemgetter(1), reverse=True)[:self.n_row]
         return maths, documents
