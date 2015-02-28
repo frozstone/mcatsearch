@@ -6,8 +6,8 @@ from pickle import dump, load
 from multiprocessing import Pool
 from sys import argv
 
-solrurlmath = 'http://localhost:9000/solr/mcd.20150129'
-solrurlpara = 'http://localhost:9000/solr/mcd.20150203.p'
+solrurlmath = 'http://localhost:9000/solr/mcd.20150203'
+solrurlpara = 'http://localhost:9000/solr/mcd.20150220.p'
 nrows = 50
 
 jdic = {}
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     judgefl = 'NTCIR11_Math-qrels.dat'
     xhtmldict = 'xhtmldict'
     dumpdir = argv[1]
-    texttype = argv[2] #choices: ctxnodep, ctx, descnodep, descdep
+    texttype = argv[2] #choices: ctxnodep, ctxdep, descnodep, descdep
     scorecomb = argv[3] #choice: sum, max
 
     qdic = openQueryFile(queryfl)
