@@ -12,43 +12,41 @@ class Query_All:
 
     def __ask_solr_math_max(self, response):
         maths_score = {}
-        document_score = response.maxScore
+        document_score = {}
         while True:
             for doc in response.results:
                 gmid = doc['gmid']
                 gpid = doc['gpid']
-                maths_score[gmid] = doc['score']
+                score = doc['score']
+                maths_score[gmid] = score
+                if (gpid not in document_score) or (gpid in document_score and score > document_score[gpid]):
+                    document_score[gpid] = score
             response = response.next_batch()
             if not response: break
         return maths_score, document_score
 
     def __ask_solr_math_sum(self, response):
         maths_score = {}
-        document_score = 0
+        document_score = {}
         while True:
             for doc in response.results:
                 gmid = doc['gmid']
                 gpid = doc['gpid']
-                maths_score[gmid] = doc['score']
-                document_score += doc['score']
+                score = doc['score']
+                maths_score[gmid] = score
+                if (gpid not in document_score): document_score[gpid] = score
+                else: document_score[gpid] += score
             response = response.next_batch()
             if not response: break
         return maths_score, document_score
     
     def __ask_solr_math(self, query, candidates, op):
-        maths = {}
-        documents = {}
-        for gpid in candidates:
-            resp = self.solr_connection.query(q = query, fields = ('gmid, gpid, score'), fq = 'gpid:(%s)' % gpid)
-            if op == 'max':
-                maths_score, document_score = self.__ask_solr_math_max(resp)
-                documents[gpid] = document_score
-                maths.update(maths_score)
-            elif op == 'sum':
-                maths_score, document_score = self.__ask_solr_math_sum(resp)
-                documents[gpid] = document_score
-                maths.update(maths_score)
-        return maths, documents
+        gpids = ' OR '.join(candidates)
+        resp = self.solr_connection.query(q = query, fields = ('gmid, gpid, score'), fq = 'gpid:(%s)' % gpids)
+        if op == 'max':
+            return self.__ask_solr_math_max(resp)
+        elif op == 'sum':
+            return  self.__ask_solr_math_sum(resp)
 
     def ask_solr_math_score(self, query, gmid):
         resp = self.solr_connection.query(q = query, fields = ('score'), fq = 'gmid:(%s)' % gmid)

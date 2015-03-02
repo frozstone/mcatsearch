@@ -14,20 +14,18 @@ class Query_Rerank:
         self.solr_conn_math = solr.SolrConnection(solrmathurl)
         self.n_row = nrow
 
-    def ask_solr_math_score(self, query, gpid):
+    def ask_solr_math_score(self, query, candidates):
         respmax = self.solr_conn_math.query(q = query, fields = ('gmid', 'score'))
         math_score = {}
-        resp = self.solr_conn_math.query(q = query, fields = ('gmid', 'score'), fq = 'gpid:(%s)' % gpid)
+        gpids = ' OR '.join(candidates)
+        resp = self.solr_conn_math.query(q = query, fields = ('gmid', 'gpid', 'score'), fq = 'gpid:(%s)' % gpids)
         while True:
             for mt in resp.results:
-                math_score[mt['gmid']] = mt['score']
+                if mt['gpid'] not in math_score: math_score[mt['gpid']] = {}
+                math_score[mt['gpid']][mt['gmid']] = mt['score']
             resp = resp.next_batch()
             if not resp: break
         return math_score, respmax.maxScore
-
-    def ask_solr_doc_score(self, query, gpid):
-        resp = self.solr_conn_doc.query(q = query, fields = ('gpid', 'score'), fq = 'gpid:(%s)' % gpid)
-        return resp.maxScore
 
     def ask_solr_doc_max_score(self, query):
         resp = self.solr_conn_doc.query(q = query, fields = ('gpid', 'score'))
@@ -35,7 +33,12 @@ class Query_Rerank:
 
     def ask_solr_doc(self, query, candidates):
         documents = OrderedDict() #{gpid:math_scores}
-        for gpid in candidates:
-            documents[gpid] = self.ask_solr_doc_score(query, gpid)
+        gpids = ' OR '.join(candidates)
+        resp = self.solr_conn_doc.query(q = query, fields = ('gpid', 'score'), fq = 'gpid:(%s)' % gpids)
+        while True:
+            for mt in resp.results:
+                documents[mt['gpid']] = mt['score']
+            resp = resp.next_batch()
+            if not resp: break
         return documents
 

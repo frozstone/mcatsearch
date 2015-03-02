@@ -66,9 +66,9 @@ def askSolr_mathtext((num, query)):
     for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
         try:
             docs_all[me] = q.askSolr_all(query, jdic[num], me, 0.5)
-#            docs_rerank[me] = q.askSolr_rerank(query, jdic[num], me, 0.5, 0.5)
+            docs_rerank[me] = q.askSolr_rerank(query, jdic[num], me, 0.5, 0.5)
             docs_all_singleton[me] = q.askSolr_all_singleton(query, jdic[num], me)
-#            docs_rerank_singleton[me] = q.askSolr_rerank_singleton(query, jdic[num], me, 0.5, 0.5)
+            docs_rerank_singleton[me] = q.askSolr_rerank_singleton(query, jdic[num], me, 0.5, 0.5)
         except:
             print num + me + ' error'
     print num + ' finish'
@@ -117,15 +117,15 @@ if __name__ == '__main__':
     f = open(path.join(dumpdir, 'math_text_dump_docs_all.dat'), 'wb')
     dump(docs_all, f, -1)
     f.close()
-#    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank.dat'), 'wb')
-#    dump(docs_rerank, f, -1)
-#    f.close()
+    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank.dat'), 'wb')
+    dump(docs_rerank, f, -1)
+    f.close()
     f = open(path.join(dumpdir, 'math_text_dump_docs_all_singleton.dat'), 'wb')
     dump(docs_all_singleton, f, -1)
     f.close()
-#    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank_singleton.dat'), 'wb')
-#    dump(docs_rerank_singleton, f, -1)
-#    f.close()
+    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank_singleton.dat'), 'wb')
+    dump(docs_rerank_singleton, f, -1)
+    f.close()
   
 #    docs_all, docs_rerank = askSolrParallel_math(qdic, 25)
 #    f = open('math_dump_docs_all.dat', 'wb')
