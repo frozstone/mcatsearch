@@ -17,9 +17,10 @@ class Query_All:
             for doc in response.results:
                 gmid = doc['gmid']
                 gpid = doc['gpid']
-                maths[gmid] = doc['score']
-                if gpid not in documents:
-                    documents[gpid] = doc['score']
+                score = doc['score']
+                maths[gmid] = score
+                if gpid not in documents or score > documents[gpid]:
+                    documents[gpid] = score
             response = response.next_batch()
             if len(documents) >= self.n_row or not response: break
         return maths, documents

@@ -16,15 +16,20 @@ class Query:
     solr_url_math = ''
     solr_url_para = ''
     n_row = 0
+    use_ctx = None
+    use_desc = None
+    op = None
 
-    def __init__(self, solrurlmath, solrurlpara, nrow):
+    def __init__(self, solrurlmath, solrurlpara, nrow, usectx, usedesc, scorecomb_op):
         self.solr_url_math = solrurlmath
         self.solr_url_para = solrurlpara
         self.n_row = nrow
+        self.use_ctx = usectx
+        self.use_desc = usedesc
+        self.op = scorecomb_op
 
     def __escape(self, string):
         return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token])
-        #return re.sub(re_qvar, '', re.sub(re_escape, r'\\\1', string))
 
     def __getUnicodeText(self, string):
         if type(string) is str:
@@ -91,12 +96,18 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-#        context_en_query = 'context_en:(%s)' % terms_word
-#        description_en_query = 'description_en:(%s)' % terms_word
+        context_en_query = 'context_en:(%s)' % terms_word
+        description_en_query = 'description_en:(%s)' % terms_word
         context_ch_query = 'context_children:(%s)' % terms_word
-#        description_ch_query = 'description_children:(%s)' % terms_word
-#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query])
-        return ' '.join([context_ch_query])
+        description_ch_query = 'description_children:(%s)' % terms_word
+        querytext = []
+        if self.use_ctx is not None:
+            querytext.append(context_en_query)
+            if self.use_ctx: querytext.append(context_ch_query)
+        if self.use_desc is not None:
+            querytext.append(description_en_query)
+            if self.use_desc: querytext.append(description_ch_query)
+        return ' '.join(querytext)
 
     def __constructSolrQuery_para_words(self, query_element):
         #construct keyword query
@@ -104,13 +115,8 @@ class Query:
         for qkeyword in query_element['keyword']:
             terms_word.extend(qkeyword.strip().split(' '))
         terms_word = ' OR '.join(terms_word)
-#        context_en_query = 'context_en:(%s)' % terms_word
-#        description_en_query = 'description_en:(%s)' % terms_word
-        context_ch_query = 'context_children:(%s)' % terms_word
-#        description_ch_query = 'description_children:(%s)' % terms_word
-#        body = 'body:(%s)' % terms_word
-#        return ' '.join([context_en_query, context_ch_query, description_en_query, description_ch_query, body])
-        return ' '.join([context_ch_query])
+        #body = 'body:(%s)' % terms_word
+        return self.__constructSolrQuery_words(query_element)
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
@@ -182,8 +188,8 @@ class Query:
     def __combine_textscore_mathscore(self, qtext_maths, qmath_maths, qtext_maxscore, qmath_maxscore, alpha):
         all_maths = dict.fromkeys(qtext_maths.keys() + qmath_maths.keys())
         for mt in all_maths.keys():
-            text_score = qtext_maths[mt]/qtext_maxscore if mt in qtext_maths and qtext_maxscore > 0 else 0.0
-            math_score = qmath_maths[mt]/qmath_maxscore if mt in qmath_maths and qmath_maxscore > 0 else 0.0
+            text_score = qtext_maths[mt]/(1 + qtext_maths[mt]) if mt in qtext_maths else 0.0
+            math_score = qmath_maths[mt]/(1 + qmath_maths[mt]) if mt in qmath_maths else 0.0
             all_maths[mt] = alpha * text_score + (1-alpha) * math_score
         return all_maths
 
@@ -194,7 +200,7 @@ class Query:
         qsingle = '%s %s' % (qtext, qmath)
         q_maths, q_docs = qall.ask_solr_doc(qsingle)
         q_docs = OrderedDict(q_docs)
-        return q_docs.keys()[:self.n_row]
+        return OrderedDict(q_docs.items()[:self.n_row])
 
     def askSolr_all(self, query, mathencode, alpha):
         '''
@@ -205,23 +211,25 @@ class Query:
         qmath = self.__constructSolrQuery_math(query, mathencode)[0]
         qtext_maths, qtext_docs = qall.ask_solr_doc(qtext)
         qmath_maths, qmath_docs = qall.ask_solr_doc(qmath)
-        text_max = qtext_maths[0][1] if len(qtext_maths) > 0 else 0.
-        math_max = qmath_maths[0][1] if len(qmath_maths) > 0 else 0.
         qtext_maths = dict(qtext_maths)
         qmath_maths = dict(qmath_maths)
         all_maths = OrderedDict.fromkeys(qtext_maths.keys() + qmath_maths.keys())
         for gmid in all_maths.keys():
-            qtext_score = (qtext_maths[gmid]/text_max if gmid in qtext_maths else qall.ask_solr_math_score(qtext, gmid)) if text_max > 0 else 0
-            qmath_score = (qmath_maths[gmid]/math_max if gmid in qmath_maths else qall.ask_solr_math_score(qmath, gmid)) if math_max > 0 else 0
-            all_maths[gmid] = alpha * qtext_score + (1-alpha) * qmath_score
-        all_docs = OrderedDict()
-        for gmid, score in sorted(all_maths.iteritems(), key=operator.itemgetter(1), reverse=True):
-            gpid = gmid[:gmid.index('#')]
-            all_docs[gpid] = score
-            if len(all_docs) >= self.n_row: break
-        return all_docs.keys()
+            qtext_score = qtext_maths[gmid] if gmid in qtext_maths else qall.ask_solr_math_score(qtext, gmid)
+            qtext_score = qtext_score/(1 + qtext_score)
 
-    def askSolr_rerank_singleton(self, query, mathencode, alpha, beta, op='max'):
+            qmath_score = qmath_maths[gmid] if gmid in qmath_maths else qall.ask_solr_math_score(qmath, gmid)
+            qmath_score = qmath_score/(1 + qmath_score)
+            all_maths[gmid] = (alpha * qtext_score + (1-alpha) * qmath_score, qmath_score, qtext_score)
+        all_docs = OrderedDict()
+        for gmid, score in sorted(all_maths.iteritems(), key=lambda m: m[1][0], reverse=True):
+            gpid = gmid[:gmid.index('#')]
+            if self.op = 'max':
+                if gpid not in all_docs or all_docs[gpid] < score: all_docc[gpid] = score
+            if len(all_docs) >= self.n_row: break
+        return OrderedDict(sorted(all_docs.iteritems(), key=lambda m: m[1], reverse=True))
+
+    def askSolr_rerank_singleton(self, query, mathencode, alpha, beta):
         qrerank = Query_Rerank(self.solr_url_para, self.solr_url_math, self.n_row)
         qtext = self.__constructSolrQuery_para_words(query)
         qtext_for_math = self.__constructSolrQuery_words(query)
@@ -229,10 +237,8 @@ class Query:
         qsingle_math = '%s %s' % (qtext_for_math, qmath)
         qsingle_para = '%s %s' % (qtext, qmath)
         q_docs = qrerank.ask_solr_doc(qsingle_para)
-        doc_max = q_docs[0][1] if len(q_docs) > 0 else 0.
-        q_docs = OrderedDict(q_docs)
         for gpid in q_docs.keys():
-            qdoc_score = q_docs[gpid]/doc_max if doc_max > 0 else 0
+            qdoc_score = q_docs[gpid]/(1 + q_docs[gpid])
 
             q_maths, q_maths_maxscore = qrerank.ask_solr_math_score(qsingle_math, gpid)
             qmath_score = 0.
@@ -253,15 +259,13 @@ class Query:
         qmath = self.__constructSolrQuery_math(query, mathencode)[0]
         qtext_docs = qrerank.ask_solr_doc(qtext)
         qmath_docs = qrerank.ask_solr_doc(qmath)
-        text_max = qtext_docs[0][1] if len(qtext_docs) > 0 else 0.
-        math_max = qmath_docs[0][1] if len(qmath_docs) > 0 else 0.
-        qtext_docs = dict(qtext_docs)
-        qmath_docs = dict(qmath_docs)
         all_docs = OrderedDict.fromkeys(qtext_docs.keys() + qmath_docs.keys())
         #iterate to insert text score
         for gpid in all_docs.keys():
-            qtext_doc_score = (qtext_docs[gpid]/text_max if gpid in qtext_docs else qrerank.ask_solr_doc_score(qtext, gpid)) if text_max > 0 else 0
-            qmath_doc_score = (qmath_docs[gpid]/math_max if gpid in qmath_docs else qrerank.ask_solr_doc_score(qmath, gpid)) if math_max > 0 else 0
+            qtext_doc_score = qtext_docs[gpid] if gpid in qtext_docs else qrerank.ask_solr_doc_score(qtext, gpid)
+            qtext_docs_score = qtext_doc_score/(1 + qtext_doc_score)
+            qmath_doc_score = qmath_docs[gpid] if gpid in qmath_docs else qrerank.ask_solr_doc_score(qmath, gpid)
+            qmath_doc_score = qmath_doc_score/(1 + qmath_doc_score)
             qdoc_score = alpha * qtext_doc_score + (1-alpha) * qmath_doc_score
 
             qtext_maths, qtext_maxscore = qrerank.ask_solr_math_score(qtext_for_math, gpid)
@@ -271,5 +275,5 @@ class Query:
             if op == 'max': qmath_score = self.__summarize_score_max(all_maths)
             elif op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(all_maths)
             elif op == 'mean': qmath_score = self.__summarize_score_mean(all_maths)
-            all_docs[gpid] = beta * qdoc_score + (1-beta) * qmath_score
-        return OrderedDict(sorted(all_docs.iteritems(), key = operator.itemgetter(1), reverse=True)).keys()
+            all_docs[gpid] = (beta * qdoc_score + (1-beta) * qmath_score, qdoc_score, qmath_score)
+        return OrderedDict(sorted(all_docs.iteritems(), key = lambda m: m[1][0], reverse=True))
