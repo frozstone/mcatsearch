@@ -70,5 +70,5 @@ class Query_Rerank:
                 documents[gpid] = doc['score'] #self.__ask_solr_math(gpid, op)
             resp = resp.next_batch()
             if len(documents) >= self.n_row or not resp: break
-        return documents.items()
+        return documents
 

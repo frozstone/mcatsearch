@@ -6,7 +6,7 @@ from pickle import dump
 from multiprocessing import Pool
 from sys import argv
 
-solrurlmath = 'http://localhost:9000/solr/mcd.201500203'
+solrurlmath = 'http://localhost:9000/solr/mcd.20150203'
 solrurlpara = 'http://localhost:9000/solr/mcd.20150220.p'
 nrows = 50
 
@@ -40,20 +40,19 @@ def openQueryFile(qfl):
     return qdic
 
 def askSolr_mathtext((num, query)):
-    print num
     docs_all = {}
     docs_rerank = {}
     docs_all_singleton = {}
     docs_rerank_singleton = {}
     q = qmt.Query(solrurlmath, solrurlpara, nrows, usectx, usedesc, scorecomb)
     for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
-        try:
+    #    try:
             docs_all[me] = q.askSolr_all(query, me, 0.5)
             docs_rerank[me] = q.askSolr_rerank(query, me, 0.5, 0.5)
             docs_all_singleton[me] = q.askSolr_all_singleton(query, me)
             docs_rerank_singleton[me] = q.askSolr_rerank_singleton(query, me, 0.5, 0.5)
-        except:
-            print num + me + ' error'
+     #   except:
+      #      print num + me + ' error'
     print num + ' finish'
     return num, docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton
 
@@ -135,5 +134,5 @@ if __name__ == '__main__':
     f.close()
     f = open(path.join(dumpdir, 'math_dump_docs_rerank.dat'), 'wb')
     dump(docs_rerank, f, -1)
-#    f.close()
+    f.close()
  

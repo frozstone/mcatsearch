@@ -120,23 +120,17 @@ class Query:
 
     def __constructSolrQuery_math_path_pres(self, qmath):
         opath, upath, sister = self.__encodeMaths_path_pres(qmath)
-        print opath
         opath_query = "opaths:('%s')" % self.__escape(' '.join(opath))
         upath_query = "upaths:('%s')" % self.__escape(' '.join(upath))
         sister_query = ' '.join(map(lambda family: "sisters:('%s')" % self.__escape(' '.join(family)), sister))
-        print opath_query.encode('utf-8')
         return opath_query, upath_query, sister_query
 
     def __constructSolrQuery_math_path_cont(self, qmath):
         ooper, oarg, uoper, uarg = self.__encodeMaths_path_cont(qmath)
-        print ooper
-        print oarg
         ooper_query = "ooper:('%s')" % self.__escape(' '.join(ooper))
         oarg_query = "oarg:('%s')" % self.__escape(' '.join(oarg))
         uoper_query = "uoper:('%s')" % self.__escape(' '.join(uoper))
         uarg_query = "uarg:('%s')" % self.__escape(' '.join(uarg)) 
-        print ooper_query.encode('utf-8')
-        print oarg_query.encode('utf-8')
         return ooper_query, oarg_query, uoper_query, uarg_query
 
     def __constructSolrQuery_math_hash_pres(self, qmath):
@@ -230,8 +224,8 @@ class Query:
         all_docs = OrderedDict()
         for gmid, score in sorted(all_maths.iteritems(), key=lambda m: m[1][0], reverse=True):
             gpid = gmid[:gmid.index('#')]
-            if self.op = 'max':
-                if gpid not in all_docs or all_docs[gpid] < score: all_docc[gpid] = score
+            if self.op == 'max':
+                if gpid not in all_docs or all_docs[gpid] < score: all_docs[gpid] = score
             if len(all_docs) >= self.n_row: break
         return OrderedDict(sorted(all_docs.iteritems(), key=lambda m: m[1], reverse=True))
 
@@ -248,9 +242,9 @@ class Query:
 
             q_maths, q_maths_maxscore = qrerank.ask_solr_math_score(qsingle_math, gpid)
             qmath_score = 0.
-            if op == 'max': qmath_score = self.__summarize_score_max(q_maths)
-            elif op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(q_maths)
-            elif op == 'mean': qmath_score = self.__summarize_score_mean(q_maths)
+            if self.op == 'max': qmath_score = self.__summarize_score_max(q_maths)
+            elif self.op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(q_maths)
+            elif self.op == 'mean': qmath_score = self.__summarize_score_mean(q_maths)
             q_docs[gpid] = beta * qdoc_score + (1-beta) * qmath_score
         return OrderedDict(sorted(q_docs.iteritems(), key = operator.itemgetter(1), reverse=True)).keys()
 
@@ -278,8 +272,8 @@ class Query:
             qmath_maths, qmath_maxscore = qrerank.ask_solr_math_score(qmath, gpid)
             all_maths = self.__combine_textscore_mathscore(qtext_maths, qmath_maths, qtext_maxscore, qmath_maxscore, alpha)
             qmath_score = 0.
-            if op == 'max': qmath_score = self.__summarize_score_max(all_maths)
-            elif op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(all_maths)
-            elif op == 'mean': qmath_score = self.__summarize_score_mean(all_maths)
+            if self.op == 'max': qmath_score = self.__summarize_score_max(all_maths)
+            elif self.op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(all_maths)
+            elif self.op == 'mean': qmath_score = self.__summarize_score_mean(all_maths)
             all_docs[gpid] = (beta * qdoc_score + (1-beta) * qmath_score, qdoc_score, qmath_score)
         return OrderedDict(sorted(all_docs.iteritems(), key = lambda m: m[1][0], reverse=True))
