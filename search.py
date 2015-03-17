@@ -1,5 +1,5 @@
 import query_mathtext as qmt
-#import query_math as qm
+import query_math as qm
 from lxml import etree, objectify
 from os import path
 from pickle import dump, load
@@ -87,6 +87,29 @@ def askSolrParallel_mathtext(qdic, cores):
         scenario_rerank_singleton[num] = docs_rerank_singleton
     return scenario_all, scenario_rerank, scenario_all_singleton, scenario_rerank_singleton
 
+def askSolr_math((num, query)):
+    print num
+    docs_all = {}
+    docs_rerank = {}
+    q = qm.Query(solrurlmath, solrurlpara, nrows, scorecomb)
+    for me in ['pathpres', 'pathcont', 'hashpres', 'hashcont']:
+#        try:
+            docs_all[me] = q.askSolr_all(query, jdic[num], me)
+            docs_rerank[me] = q.askSolr_rerank(query, jdic[num], me, 0.5)
+ #       except:
+  #          print num + me + 'error'
+    print num + ' finish'
+    return num, docs_all, docs_rerank
+
+def askSolrParallel_math(qdic, cores):
+    pool = Pool(processes = cores)
+    scenario_all = {}
+    scenario_rerank = {}
+    for num, docs_all, docs_rerank in pool.map(askSolr_math, qdic.items()):
+        scenario_all[num] = docs_all
+        scenario_rerank[num] = docs_rerank
+    return scenario_all, scenario_rerank
+
 def parseTextType(texttype):
     usectx = None
     usedesc = None
@@ -113,25 +136,26 @@ if __name__ == '__main__':
 #    askSolr_mathtext(('NTCIR11-Math-12', qdic['NTCIR11-Math-12']))
     print usectx, usedesc
 
-    docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton = askSolrParallel_mathtext(qdic, 50)
-    f = open(path.join(dumpdir, 'math_text_dump_docs_all.dat'), 'wb')
-    dump(docs_all, f, -1)
-    f.close()
-    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank.dat'), 'wb')
-    dump(docs_rerank, f, -1)
-    f.close()
-    f = open(path.join(dumpdir, 'math_text_dump_docs_all_singleton.dat'), 'wb')
-    dump(docs_all_singleton, f, -1)
-    f.close()
-    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank_singleton.dat'), 'wb')
-    dump(docs_rerank_singleton, f, -1)
-    f.close()
-  
-#    docs_all, docs_rerank = askSolrParallel_math(qdic, 25)
-#    f = open('math_dump_docs_all.dat', 'wb')
+#    docs_all, docs_rerank, docs_all_singleton, docs_rerank_singleton = askSolrParallel_mathtext(qdic, 50)
+#    f = open(path.join(dumpdir, 'math_text_dump_docs_all.dat'), 'wb')
 #    dump(docs_all, f, -1)
 #    f.close()
-#    f = open('math_dump_docs_rerank.dat', 'wb')
+#    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank.dat'), 'wb')
 #    dump(docs_rerank, f, -1)
 #    f.close()
+#    f = open(path.join(dumpdir, 'math_text_dump_docs_all_singleton.dat'), 'wb')
+#    dump(docs_all_singleton, f, -1)
+#    f.close()
+#    f = open(path.join(dumpdir, 'math_text_dump_docs_rerank_singleton.dat'), 'wb')
+#    dump(docs_rerank_singleton, f, -1)
+#    f.close()
+
+#    askSolr_math(('NTCIR11-Math-12', qdic['NTCIR11-Math-12'])) 
+    docs_all, docs_rerank = askSolrParallel_math(qdic, 50)
+    f = open(path.join(dumpdir, 'math_dump_docs_all.dat'), 'wb')
+    dump(docs_all, f, -1)
+    f.close()
+    f = open(path.join(dumpdir ,'math_dump_docs_rerank.dat'), 'wb')
+    dump(docs_rerank, f, -1)
+    f.close()
  

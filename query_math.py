@@ -16,11 +16,13 @@ class Query:
     solr_url_math = ''
     solr_url_para = ''
     n_row = 0
+    op = None
 
-    def __init__(self, solrurlmath, solrurlpara, nrow):
+    def __init__(self, solrurlmath, solrurlpara, nrow, scorecomb_op):
         self.solr_url_math = solrurlmath
         self.solr_url_para = solrurlpara
         self.n_row = nrow
+        self.op = scorecomb_op
 
     def __escape(self, string):
         return ' '.join([token for token in re.sub(re_escape, r'\\\1', string).split(' ') if 'qvar' not in token])
@@ -159,41 +161,40 @@ class Query:
             all_maths[mt] = alpha * text_score + (1-alpha) * math_score
         return all_maths
 
-    def askSolr_all(self, query, mathencode):
+    def askSolr_all(self, query, candidates, mathencode):
         '''
             alpha: weight for math-related fields
         '''
         qall = Query_All(self.solr_url_math, self.n_row)
         qmath = self.__constructSolrQuery_math(query, mathencode)[0]
-        qmath_maths, qmath_docs = qall.ask_solr_doc(qmath)
+        qmath_maths, qmath_docs = qall.ask_solr_doc(qmath, candidates, self.op)
         qmath_maths = OrderedDict(qmath_maths)
         all_maths = OrderedDict.fromkeys(qmath_maths.keys())
         for gmid in all_maths.keys():
-            qmath_score = qmath_maths[gmid] if gmid in qmath_maths else qall.ask_solr_math_score(qmath, gmid)
-            qmath_score = qmath_score/(1 + qmath_score)
+            qmath_score = qmath_maths[gmid]/(1 + qmath_maths[gmid]) if gmid in qmath_maths else 0.
             all_maths[gmid] = qmath_score
         all_docs = OrderedDict()
         for gmid, score in sorted(all_maths.iteritems(), key=lambda m: m[1], reverse=True):
             gpid = gmid[:gmid.index('#')]
-            if gpid not in all_docs ior score > all_docs[gpid]:
-                all_docs[gpid] = score
-            if len(all_docs) >= self.n_row: break
+            if self.op == 'max':
+                if gpid not in all_docs or score > all_docs[gpid]:
+                    all_docs[gpid] = score
         return OrderedDict(sorted(all_docs.iteritems(), key=lambda m: m[1], reverse=True))
 
-    def askSolr_rerank(self, query, mathencode, beta, op='max'):
+    def askSolr_rerank(self, query, candidates, mathencode, beta):
         qrerank = Query_Rerank(self.solr_url_para, self.solr_url_math, self.n_row)
         qmath = self.__constructSolrQuery_math(query, mathencode)[0]
-        qmath_docs = qrerank.ask_solr_doc(qmath)
-        all_docs = OrderedDict.fromkeys(qmath_docs.keys())
-        #iterate to insert text score
-        for gpid in all_docs.keys():
-            qdoc_score = qmath_docs[gpid]/(1 + qmath_docs[gpid])
+        q_docs = qrerank.ask_solr_doc(qmath, candidates)
+        q_maths, q_maths_maxscore = qrerank.ask_solr_math_score(qmath, candidates)
 
-            qmath_maths, qmath_maxscore = qrerank.ask_solr_math_score(qmath, gpid)
-            all_maths = self.__combine_textscore_mathscore({}, qmath_maths, 0, qmath_maxscore, 0)
+        all_docs = OrderedDict.fromkeys(candidates)
+        for gpid in candidates:
+            qdoc_score = q_docs[gpid]/(1 + q_docs[gpid]) if gpid in q_docs else 0.
+
             qmath_score = 0.
-            if op == 'max': qmath_score = self.__summarize_score_max(all_maths)
-            elif op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(all_maths)
-            elif op == 'mean': qmath_score = self.__summarize_score_mean(all_maths)
-            all_docs[gpid] = (beta * qdoc_score + (1-beta) * qmath_score, qdoc_score. qmath_score)
+            if gpid in q_maths and len(q_maths[gpid]) > 0:
+                if self.op == 'max': qmath_score = self.__summarize_score_max(q_maths[gpid])
+                elif self.op == 'geomMean': qmath_score = self.__summarize_score_geometric_mean(q_maths[gpid])
+                elif self.op == 'mean': qmath_score = self.__summarize_score_mean(q_maths[gpid])
+            all_docs[gpid] = (beta * qdoc_score + (1-beta) * qmath_score, qdoc_score, qmath_score)
         return OrderedDict(sorted(all_docs.iteritems(), key = lambda m:m[1][0], reverse=True))
